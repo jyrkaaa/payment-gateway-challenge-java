@@ -3,6 +3,7 @@ import com.checkout.payment.gateway.model.PostPaymentRequest;
 
 import lombok.experimental.UtilityClass;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -17,7 +18,7 @@ public class FingerprintService {
         Integer.toString(request.getExpiryMonth()),
         Integer.toString(request.getExpiryYear()),
         nullSafe(request.getCurrency()),
-        Integer.toString(request.getAmount()),
+        request.getAmount().toString(),
         nullSafe(request.getCvv()));
     return sha256(canonical);
   }

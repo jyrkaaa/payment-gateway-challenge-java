@@ -1,6 +1,7 @@
 package com.checkout.payment.gateway.model;
 
 import com.checkout.payment.gateway.validation.ValidExpiryDate;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -8,6 +9,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 import lombok.Data;
 
 @Data
@@ -32,16 +34,18 @@ public class PostPaymentRequest {
     private String currency;
 
     @Positive(message = "amount must be a positive integer")
-    private int amount;
+    private BigDecimal amount;
 
     @NotBlank(message = "cvv is required")
     @Pattern(regexp = "\\d{3,4}", message = "cvv must be 3-4 numeric characters")
     private String cvv;
 
+    @JsonIgnore
     public String getExpiryDate() {
         return String.format("%02d/%d", expiryMonth, expiryYear);
     }
 
+    @JsonIgnore
     public String getCardNumberLastFour() {
         return cardNumber != null && cardNumber.length() >= 4
             ? cardNumber.substring(cardNumber.length() - 4)

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <!-- Local dev: human-readable console + JSON file for Loki -->
+    <!-- Local dev: human-readable console output only -->
     <springProfile name="default">
         <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
@@ -9,24 +9,12 @@
             </encoder>
         </appender>
 
-        <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-            <file>logs/payment-gateway.json</file>
-            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-                <fileNamePattern>logs/payment-gateway.%d{yyyy-MM-dd}.json</fileNamePattern>
-                <maxHistory>7</maxHistory>
-            </rollingPolicy>
-            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-                <customFields>{"app":"payment-gateway","env":"local"}</customFields>
-            </encoder>
-        </appender>
-
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="JSON_FILE"/>
         </root>
     </springProfile>
 
-    <!-- Production: JSON to stdout only (consumed by Docker log driver / Promtail) -->
+    <!-- Production (Docker): JSON to stdout, consumed by Promtail via Docker log driver -->
     <springProfile name="production">
         <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">

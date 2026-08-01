@@ -2,6 +2,7 @@ package com.checkout.payment.gateway.controller;
 
 import com.checkout.payment.gateway.enums.PaymentStatus;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
+import java.math.BigDecimal;
 import com.checkout.payment.gateway.repository.PaymentsRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ class PaymentGatewayControllerTest {
     void whenPaymentWithIdExistThenCorrectPaymentIsReturned() throws Exception {
         PostPaymentResponse payment = new PostPaymentResponse();
         payment.setId(UUID.randomUUID());
-        payment.setAmount(10);
+        payment.setAmount(BigDecimal.valueOf(10.00));
         payment.setCurrency("USD");
         payment.setStatus(PaymentStatus.AUTHORIZED);
         payment.setExpiryMonth(12);

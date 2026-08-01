@@ -9,71 +9,6 @@
   "panels": [
     {
       "id": 1,
-      "type": "stat",
-      "title": "Inbound Requests",
-      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "loki", "uid": "loki" },
-      "targets": [
-        {
-          "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "sum(count_over_time({job=\"payment-gateway\", event_type=\"MSG_LOG\", msg_direction=\"INBOUND\"} [$__range]))",
-          "instant": true
-        }
-      ],
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "textMode": "auto" },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } }
-    },
-    {
-      "id": 2,
-      "type": "stat",
-      "title": "Bank Calls",
-      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "loki", "uid": "loki" },
-      "targets": [
-        {
-          "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "sum(count_over_time({job=\"payment-gateway\", event_type=\"MSG_LOG\", msg_direction=\"OUTBOUND\"} [$__range]))",
-          "instant": true
-        }
-      ],
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "textMode": "auto" },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] } } }
-    },
-    {
-      "id": 3,
-      "type": "stat",
-      "title": "Bank Call Errors",
-      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "loki", "uid": "loki" },
-      "targets": [
-        {
-          "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "sum(count_over_time({job=\"payment-gateway\", event_type=\"MSG_LOG\", msg_direction=\"OUTBOUND\", level=\"WARN\"} [$__range]))",
-          "instant": true
-        }
-      ],
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "textMode": "auto" },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } } }
-    },
-    {
-      "id": 4,
-      "type": "stat",
-      "title": "Request Rate (1m)",
-      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
-      "datasource": { "type": "loki", "uid": "loki" },
-      "targets": [
-        {
-          "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "sum(rate({job=\"payment-gateway\", event_type=\"MSG_LOG\", msg_direction=\"INBOUND\"} [1m]))",
-          "legendFormat": "req/s"
-        }
-      ],
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "textMode": "auto" },
-      "fieldConfig": { "defaults": { "unit": "reqps", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } } }
-    },
-
-    {
-      "id": 5,
       "type": "table",
       "title": "Message Log",
       "gridPos": { "x": 0, "y": 4, "w": 24, "h": 22 },
@@ -89,51 +24,63 @@
         {
           "id": "extractFields",
           "options": {
-            "format": "json",
             "source": "Line",
-            "replace": true
+            "format": "json",
+            "replace": false,
+            "keepTime": false
           }
         },
         {
           "id": "organize",
           "options": {
             "excludeByName": {
-              "tsNs":         true,
-              "labels":       true,
-              "labelTypes":   true,
-              "id":           true,
-              "@timestamp":   true,
-              "@version":     true,
-              "message":      true,
-              "logger_name":  true,
-              "thread_name":  true,
-              "level":        true,
-              "level_value":  true,
-              "event_type":   true,
-              "app":          true,
-              "env":          true,
-              "job":          true
+              "Line":                    true,
+              "tsNs":                    true,
+              "labels":                  true,
+              "labelTypes":              true,
+              "id":                      true,
+              "@timestamp":              true,
+              "@version":                true,
+              "_timestamp":              true,
+              "_version":                true,
+              "message":                 true,
+              "logger_name":             true,
+              "thread_name":             true,
+              "level":                   true,
+              "level_value":             true,
+              "level_extracted":         true,
+              "event_type":              true,
+              "event_type_extracted":    true,
+              "msg_direction":           true,
+              "msg_direction_extracted": true,
+              "app":                     true,
+              "env":                     true,
+              "job":                     true,
+              "filename":                true,
+              "service_name":            true
             },
             "indexByName": {
-              "Time":           0,
-              "msg_direction":  1,
-              "msg_sender":     2,
-              "msg_target":     3,
-              "msg_method":     4,
-              "msg_endpoint":   5,
-              "msg_status":     6,
-              "correlationId":  7,
-              "msg_duration_ms": 8
+              "Time":            0,
+              "msg_sender":      1,
+              "msg_target":      2,
+              "msg_method":      3,
+              "msg_endpoint":    4,
+              "msg_status":      5,
+              "correlationId":   6,
+              "msg_duration_ms": 7,
+              "msg_request":     8,
+              "msg_response":    9
             },
             "renameByName": {
-              "msg_direction":   "Direction",
               "msg_sender":      "System",
               "msg_target":      "Target",
               "msg_method":      "Request",
               "msg_endpoint":    "Path",
               "msg_status":      "Response",
               "correlationId":   "RequestId",
-              "msg_duration_ms": "Duration (ms)"
+              "msg_duration_ms": "Duration (ms)",
+              "msg_request":     "Req Body",
+              "msg_response":    "Res Body"
             }
           }
         },
@@ -150,7 +97,8 @@
       "options": {
         "showHeader": true,
         "cellHeight": "sm",
-        "footer": { "show": false, "countRows": false, "reducer": ["sum"] }
+        "footer": { "show": false, "countRows": false, "reducer": ["sum"] },
+        "sortBy": [{ "displayName": "Time", "desc": true }]
       },
       "fieldConfig": {
         "defaults": {
@@ -166,20 +114,6 @@
             "matcher": { "id": "byName", "options": "Time" },
             "properties": [
               { "id": "custom.width", "value": 180 }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Direction" },
-            "properties": [
-              { "id": "custom.width", "value": 100 },
-              {
-                "id": "mappings",
-                "value": [
-                  { "type": "value", "options": { "INBOUND":  { "color": "blue",   "index": 0 } } },
-                  { "type": "value", "options": { "OUTBOUND": { "color": "purple", "index": 1 } } }
-                ]
-              },
-              { "id": "custom.displayMode", "value": "color-text" }
             ]
           },
           {
@@ -241,13 +175,42 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Req Body" },
+            "properties": [
+              { "id": "custom.width", "value": 300 },
+              { "id": "custom.inspect", "value": true }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Res Body" },
+            "properties": [
+              { "id": "custom.width", "value": 300 },
+              { "id": "custom.inspect", "value": true }
+            ]
           }
         ]
       }
     },
-
     {
-      "id": 6,
+    "id": 2,
+      "type": "stat",
+      "title": "Request Rate (1m)",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum(rate({job=\"payment-gateway\", event_type=\"MSG_LOG\", msg_direction=\"INBOUND\"} [1m]))",
+          "legendFormat": "req/s"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "textMode": "auto" },
+      "fieldConfig": { "defaults": { "unit": "reqps", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } } }
+    },
+    {
+      "id": 3,
       "type": "timeseries",
       "title": "Message Rate Over Time",
       "gridPos": { "x": 0, "y": 26, "w": 24, "h": 7 },

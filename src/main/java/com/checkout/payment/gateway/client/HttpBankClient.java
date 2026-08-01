@@ -3,6 +3,8 @@ package com.checkout.payment.gateway.client;
 import com.checkout.payment.gateway.exception.BankCommunicationException;
 import com.checkout.payment.gateway.exception.BankServiceUnavailableException;
 import com.checkout.payment.gateway.logging.MessageLogger;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -15,6 +17,8 @@ import org.springframework.web.client.RestClientResponseException;
 @RequiredArgsConstructor
 public class HttpBankClient implements IBankClient {
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private final RestClient restClient;
 
     @Override
@@ -23,6 +27,7 @@ public class HttpBankClient implements IBankClient {
         log.debug("Sending payment to bank for card ending {}", last4);
 
         long start = System.currentTimeMillis();
+        String reqBody = toJson(request);
         try {
             BankPaymentResponse response = restClient.post()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -34,13 +39,15 @@ public class HttpBankClient implements IBankClient {
 
             long durationMs = System.currentTimeMillis() - start;
             log.debug("Bank responded: authorized={}", response.isAuthorized());
-            MessageLogger.logOutbound("POST", "/payments", "acquiring-bank", 200, durationMs, true);
+            MessageLogger.logOutbound("POST", "/payments", "acquiring-bank", 200, durationMs, true,
+                reqBody, toJson(response));
             return response;
 
         } catch (RestClientResponseException ex) {
             long durationMs = System.currentTimeMillis() - start;
             int status = ex.getStatusCode().value();
-            MessageLogger.logOutbound("POST", "/payments", "acquiring-bank", status, durationMs, false);
+            MessageLogger.logOutbound("POST", "/payments", "acquiring-bank", status, durationMs, false,
+                reqBody, ex.getResponseBodyAsString());
             if (status == HttpStatus.SERVICE_UNAVAILABLE.value()) {
                 log.warn("Acquiring bank returned 503 Service Unavailable");
                 throw new BankServiceUnavailableException("Acquiring bank returned 503", ex);
@@ -50,9 +57,18 @@ public class HttpBankClient implements IBankClient {
 
         } catch (ResourceAccessException ex) {
             long durationMs = System.currentTimeMillis() - start;
-            MessageLogger.logOutbound("POST", "/payments", "acquiring-bank", null, durationMs, false);
+            MessageLogger.logOutbound("POST", "/payments", "acquiring-bank", null, durationMs, false,
+                reqBody, null);
             log.error("Acquiring bank unreachable", ex);
             throw new BankServiceUnavailableException("Acquiring bank unreachable", ex);
+        }
+    }
+
+    private String toJson(Object obj) {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(obj);
+        } catch (JsonProcessingException e) {
+            return null;
         }
     }
 }

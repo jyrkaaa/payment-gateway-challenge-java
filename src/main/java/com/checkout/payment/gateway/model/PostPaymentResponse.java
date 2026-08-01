@@ -4,6 +4,7 @@ import com.checkout.payment.gateway.enums.PaymentStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 @Data
 public class PostPaymentResponse {
@@ -20,5 +21,5 @@ public class PostPaymentResponse {
     @JsonProperty("currency")              
     private String currency;
     @JsonProperty("amount")                
-    private int amount;
+    private BigDecimal amount;
 }

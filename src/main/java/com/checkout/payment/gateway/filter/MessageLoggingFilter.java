@@ -5,12 +5,14 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.ContentCachingRequestWrapper;
+import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 @Component
 @Order(2)
@@ -26,20 +28,22 @@ public class MessageLoggingFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
         long start = System.currentTimeMillis();
+        ContentCachingRequestWrapper requestWrapper = new ContentCachingRequestWrapper(request, 8192);
+        ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(response);
         try {
-            chain.doFilter(request, response);
+            chain.doFilter(requestWrapper, responseWrapper);
         } finally {
             long durationMs = System.currentTimeMillis() - start;
-            String sender = request.getHeader("X-Forwarded-For");
-            if (sender == null || sender.isBlank()) {
-                sender = request.getRemoteAddr();
-            }
+            String reqBody = new String(requestWrapper.getContentAsByteArray(), StandardCharsets.UTF_8).strip();
+            String resBody = new String(responseWrapper.getContentAsByteArray(), StandardCharsets.UTF_8).strip();
+            responseWrapper.copyBodyToResponse();
             MessageLogger.logInbound(
                 request.getMethod(),
                 request.getRequestURI(),
-                sender,
                 response.getStatus(),
-                durationMs
+                durationMs,
+                reqBody.isEmpty() ? null : reqBody,
+                resBody.isEmpty() ? null : resBody
             );
         }
     }
