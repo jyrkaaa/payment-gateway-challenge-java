@@ -1,31 +1,89 @@
 package com.checkout.payment.gateway.service;
 
-import com.checkout.payment.gateway.exception.EventProcessingException;
+import com.checkout.payment.gateway.client.BankPaymentResponse;
+import com.checkout.payment.gateway.client.IBankClient;
+import com.checkout.payment.gateway.enums.PaymentStatus;
+import com.checkout.payment.gateway.exception.PaymentNotFoundException;
+import com.checkout.payment.gateway.exception.PaymentValidationException;
+import com.checkout.payment.gateway.idempotency.IIdempotencyStore;
+import com.checkout.payment.gateway.idempotency.IdempotencyResult;
+import com.checkout.payment.gateway.mappers.BankPaymentMapper;
+import com.checkout.payment.gateway.mappers.PaymentMapper;
 import com.checkout.payment.gateway.model.PostPaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
+import com.checkout.payment.gateway.model.ProcessedPayment;
 import com.checkout.payment.gateway.repository.PaymentsRepository;
-import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.checkout.payment.gateway.validation.PaymentRequestValidator;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
+@Slf4j
 @Service
-public class PaymentGatewayService {
+@RequiredArgsConstructor
+public class PaymentGatewayService implements IPaymentGatewayService {
 
-  private static final Logger LOG = LoggerFactory.getLogger(PaymentGatewayService.class);
+    private final PaymentsRepository paymentsRepository;
+    private final IBankClient bankClient;
+    private final IIdempotencyStore idempotencyService;
+    private final PaymentRequestValidator validator;
 
-  private final PaymentsRepository paymentsRepository;
+    @Override
+    public PostPaymentResponse getPaymentById(UUID id) {
+        log.debug("Retrieving payment {}", id);
+        return paymentsRepository.get(id)
+            .orElseThrow(() -> new PaymentNotFoundException("Payment not found: " + id));
+    }
 
-  public PaymentGatewayService(PaymentsRepository paymentsRepository) {
-    this.paymentsRepository = paymentsRepository;
+    @Override
+    public ProcessedPayment processPayment(PostPaymentRequest request, Optional<String> idempotencyKey) {
+        log.debug("Processing payment: last4={} amount={} currency={} idempotencyKey={}",
+        request.getCardNumberLastFour(), request.getAmount(), request.getCurrency(),
+        idempotencyKey.isPresent() ? "<present>" : "<none>");
+
+        List<String> errors = validator.validate(request);
+        if (!errors.isEmpty()) {
+            throw new PaymentValidationException(errors);
+        }
+
+        try {
+            ProcessedPayment result = idempotencyKey.isPresent()
+                ? processIdempotent(request, idempotencyKey.get())
+                : new ProcessedPayment(doProcess(request), false);
+            return result;
+        } catch (RuntimeException ex) {
+            log.warn("Payment failed last4={} cause={}",
+            request.getCardNumberLastFour(), ex.toString());
+            throw ex;
+        }
+    }
+
+    private ProcessedPayment processIdempotent(PostPaymentRequest request, String idempotencyKey) {
+    IdempotencyResult result = idempotencyService.computeIfAbsent(idempotencyKey, FingerprintService.fingerprint(request),
+     () -> doProcess(request));
+
+    if (result.replayed()) {
+      log.info("Replayed idempotent payment id={} key={}",
+          result.response().getId(), idempotencyKey);
+    }
+
+    return new ProcessedPayment(result.response(), result.replayed());
   }
 
-  public PostPaymentResponse getPaymentById(UUID id) {
-    LOG.debug("Requesting access to to payment with ID {}", id);
-    return paymentsRepository.get(id).orElseThrow(() -> new EventProcessingException("Invalid ID"));
-  }
+  private PostPaymentResponse doProcess(PostPaymentRequest request) {
+    BankPaymentResponse bankResponse = bankClient.sendPayment(
+        BankPaymentMapper.from(request));
 
-  public UUID processPayment(PostPaymentRequest paymentRequest) {
-    return UUID.randomUUID();
+    PaymentStatus status = bankResponse.isAuthorized()
+        ? PaymentStatus.AUTHORIZED
+        : PaymentStatus.DECLINED;
+
+    PostPaymentResponse response =
+        PaymentMapper.toPaymentResponse(UUID.randomUUID(), status, request);
+    paymentsRepository.add(response);
+    return response;
   }
 }
