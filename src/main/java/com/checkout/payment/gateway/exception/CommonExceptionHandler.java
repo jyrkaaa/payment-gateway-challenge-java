@@ -32,14 +32,14 @@ public class CommonExceptionHandler {
                 .map(ge -> ge.getDefaultMessage())
         ).toList();
         log.warn("Payment rejected by validation: {}", errors);
-        return ResponseEntity.unprocessableEntity()
+        return ResponseEntity.unprocessableContent()
             .body(new ErrorResponse(String.join("; ", errors)));
     }
 
     @ExceptionHandler(PaymentValidationException.class)
     public ResponseEntity<ErrorResponse> handleValidation(PaymentValidationException ex) {
         log.warn("Payment rejected: {}", ex.getErrors());
-        return ResponseEntity.unprocessableEntity()
+        return ResponseEntity.unprocessableContent()
             .body(new ErrorResponse(String.join("; ", ex.getErrors())));
     }
 
@@ -49,7 +49,7 @@ public class CommonExceptionHandler {
             .map(cv -> cv.getMessage())
             .toList();
         log.warn("Request rejected by constraint validation: {}", errors);
-        return ResponseEntity.unprocessableEntity()
+        return ResponseEntity.unprocessableContent()
             .body(new ErrorResponse(String.join("; ", errors)));
     }
 

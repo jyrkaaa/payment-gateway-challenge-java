@@ -13,6 +13,7 @@ import com.checkout.payment.gateway.model.PostPaymentResponse;
 import com.checkout.payment.gateway.model.ProcessedPayment;
 import com.checkout.payment.gateway.repository.PaymentsRepository;
 import com.checkout.payment.gateway.validation.PaymentRequestValidator;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,7 +46,7 @@ class PaymentGatewayServiceTest {
     @BeforeEach
     void setUp() {
         lenient().when(validator.validate(any())).thenReturn(List.of());
-        service = new PaymentGatewayService(repository, bankClient, new InMemoryIdempotencyStore(), validator);
+        service = new PaymentGatewayService(repository, bankClient, new InMemoryIdempotencyStore(), validator, new SimpleMeterRegistry());
     }
 
     @Test

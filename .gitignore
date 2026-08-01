@@ -36,3 +36,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Runtime logs (shipped to Loki via Promtail) ###
+logs/

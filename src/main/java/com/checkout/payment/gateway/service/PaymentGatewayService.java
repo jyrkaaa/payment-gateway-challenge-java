@@ -14,6 +14,7 @@ import com.checkout.payment.gateway.model.PostPaymentResponse;
 import com.checkout.payment.gateway.model.ProcessedPayment;
 import com.checkout.payment.gateway.repository.PaymentsRepository;
 import com.checkout.payment.gateway.validation.PaymentRequestValidator;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class PaymentGatewayService implements IPaymentGatewayService {
     private final IBankClient bankClient;
     private final IIdempotencyStore idempotencyService;
     private final PaymentRequestValidator validator;
+    private final MeterRegistry meterRegistry;
 
     @Override
     public PostPaymentResponse getPaymentById(UUID id) {
@@ -84,6 +86,8 @@ public class PaymentGatewayService implements IPaymentGatewayService {
     PostPaymentResponse response =
         PaymentMapper.toPaymentResponse(UUID.randomUUID(), status, request);
     paymentsRepository.add(response);
+    meterRegistry.counter("payments.processed",
+        "status", status.getName(), "currency", request.getCurrency()).increment();
     return response;
   }
 }

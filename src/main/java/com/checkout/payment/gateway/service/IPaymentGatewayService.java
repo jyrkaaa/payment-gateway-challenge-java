@@ -1,6 +1,5 @@
 package com.checkout.payment.gateway.service;
 
-import com.checkout.payment.gateway.idempotency.IdempotencyResult;
 import com.checkout.payment.gateway.model.PostPaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
 import com.checkout.payment.gateway.model.ProcessedPayment;
