@@ -26,7 +26,7 @@ public class BankProperties {
   @Setter
   public static class Retry {
     private int maxAttempts = 3;
-    private Duration initialBackoff = Duration.ofMillis(200);
+    private Duration initialBackoff = Duration.ofMillis(2000);
     private double backoffMultiplier = 2.0;
   }
 

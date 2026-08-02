@@ -1,7 +1,5 @@
 package com.checkout.payment.gateway.client;
 
-import java.math.BigDecimal;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,7 +18,7 @@ public class BankPaymentRequest {
     private String currency;
 
     @JsonProperty("amount")
-    private BigDecimal amount;
+    private int amount;
 
     @JsonProperty("cvv")
     private String cvv;

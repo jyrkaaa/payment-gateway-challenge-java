@@ -2,73 +2,38 @@ package com.checkout.payment.gateway.client;
 
 import com.checkout.payment.gateway.exception.BankCommunicationException;
 import com.checkout.payment.gateway.exception.BankServiceUnavailableException;
-import com.checkout.payment.gateway.logging.MessageLogger;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
+
+import org.springframework.http.HttpStatusCode;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientResponseException;
 
 @Slf4j
-@RequiredArgsConstructor
-public class HttpBankClient implements IBankClient {
+public class HttpBankClient extends AbstractRestClient implements IBankClient {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    private final RestClient restClient;
-
-    @Override
-    public BankPaymentResponse sendPayment(BankPaymentRequest request) {
-        String last4 = request.getCardNumber().substring(request.getCardNumber().length() - 4);
-        log.debug("Sending payment to bank for card ending {}", last4);
-
-        long start = System.currentTimeMillis();
-        String reqBody = toJson(request);
-        try {
-            BankPaymentResponse response = restClient.post()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(request)
-                .retrieve()
-                .body(BankPaymentResponse.class);
-
-            if (response == null) throw new BankCommunicationException("Bank returned null response");
-
-            long durationMs = System.currentTimeMillis() - start;
-            log.debug("Bank responded: authorized={}", response.isAuthorized());
-            MessageLogger.logOutbound("POST", "/payments", "acquiring-bank", 200, durationMs, true,
-                reqBody, toJson(response));
-            return response;
-
-        } catch (RestClientResponseException ex) {
-            long durationMs = System.currentTimeMillis() - start;
-            int status = ex.getStatusCode().value();
-            MessageLogger.logOutbound("POST", "/payments", "acquiring-bank", status, durationMs, false,
-                reqBody, ex.getResponseBodyAsString());
-            if (status == HttpStatus.SERVICE_UNAVAILABLE.value()) {
-                log.warn("Acquiring bank returned 503 Service Unavailable");
-                throw new BankServiceUnavailableException("Acquiring bank returned 503", ex);
-            }
-            log.error("Acquiring bank returned error status {}", status);
-            throw new BankServiceUnavailableException("Acquiring bank error: " + status, ex);
-
-        } catch (ResourceAccessException ex) {
-            long durationMs = System.currentTimeMillis() - start;
-            MessageLogger.logOutbound("POST", "/payments", "acquiring-bank", null, durationMs, false,
-                reqBody, null);
-            log.error("Acquiring bank unreachable", ex);
-            throw new BankServiceUnavailableException("Acquiring bank unreachable", ex);
-        }
+    private static final String ENDPOINT = "/payments";
+    public String TargetServiceName() { return "acquiring-bank"; }
+    
+    public HttpBankClient(RestClient restClient) {
+        super(restClient);
     }
 
-    private String toJson(Object obj) {
-        try {
-            return OBJECT_MAPPER.writeValueAsString(obj);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
+    public BankPaymentResponse sendPayment(BankPaymentRequest request) {
+        log.debug("Sending payment to bank for card ending {}", request.getCardNumber());
+
+        BankPaymentResponse response = post(ENDPOINT, request, BankPaymentResponse.class);
+        if (response == null) throw new BankCommunicationException("Bank returned null response");
+        log.debug("Bank responded: authorized={}", response.isAuthorized());
+        return response;
+    }
+
+    @Override
+    protected RuntimeException mapHttpError(HttpStatusCode statusCode, String responseBody) {
+        return new BankServiceUnavailableException("Acquiring bank returned " + statusCode);
+    }
+
+    @Override
+    protected RuntimeException mapNetworkError(ResourceAccessException ex) {
+        return new BankServiceUnavailableException("Acquiring bank unreachable", ex);
     }
 }

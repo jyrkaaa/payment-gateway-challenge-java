@@ -1,5 +1,5 @@
 services:
-  bank_simulator:
+  bank-simulator:
     container_name: bank_simulator
     image: bbyars/mountebank:2.8.1
     ports:
@@ -18,11 +18,11 @@ services:
       - "8090:8090"
     environment:
       - SPRING_PROFILES_ACTIVE=production
-      - GATEWAY_ACQUIRING_BANK_URL=http://bank_simulator:8080/payments
+      - GATEWAY_ACQUIRING_BANK_URL=http://bank-simulator:8080/payments
     labels:
       - "logging=promtail"
     depends_on:
-      - bank_simulator
+      - bank-simulator
 
   loki:
     image: grafana/loki:latest
@@ -50,6 +50,8 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - payment-gateway
 
   grafana:
     image: grafana/grafana:latest

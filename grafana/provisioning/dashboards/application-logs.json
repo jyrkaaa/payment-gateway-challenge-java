@@ -9,6 +9,30 @@
   "panels": [
     {
       "id": 1,
+      "type": "logs",
+      "title": "All Application Logs",
+      "gridPos": { "x": 0, "y": 17, "w": 24, "h": 13 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{job=\"payment-gateway\", event_type=\"APP_LOG\"}",
+          "legendFormat": ""
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": false,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "id": 2,
       "type": "timeseries",
       "title": "Log Volume by Level",
       "gridPos": { "x": 0, "y": 0, "w": 24, "h": 7 },
@@ -31,54 +55,6 @@
         ]
       },
       "options": { "tooltip": { "mode": "multi" } }
-    },
-    {
-      "id": 2,
-      "type": "logs",
-      "title": "Errors & Warnings",
-      "gridPos": { "x": 0, "y": 7, "w": 24, "h": 10 },
-      "datasource": { "type": "loki", "uid": "loki" },
-      "targets": [
-        {
-          "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "{job=\"payment-gateway\", event_type=\"APP_LOG\", level=~\"ERROR|WARN\"}",
-          "legendFormat": ""
-        }
-      ],
-      "options": {
-        "showTime": true,
-        "showLabels": true,
-        "showCommonLabels": false,
-        "wrapLogMessage": true,
-        "prettifyLogMessage": false,
-        "enableLogDetails": true,
-        "dedupStrategy": "none",
-        "sortOrder": "Descending"
-      }
-    },
-    {
-      "id": 3,
-      "type": "logs",
-      "title": "All Application Logs",
-      "gridPos": { "x": 0, "y": 17, "w": 24, "h": 13 },
-      "datasource": { "type": "loki", "uid": "loki" },
-      "targets": [
-        {
-          "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "{job=\"payment-gateway\", event_type=\"APP_LOG\"}",
-          "legendFormat": ""
-        }
-      ],
-      "options": {
-        "showTime": true,
-        "showLabels": false,
-        "showCommonLabels": false,
-        "wrapLogMessage": false,
-        "prettifyLogMessage": false,
-        "enableLogDetails": true,
-        "dedupStrategy": "none",
-        "sortOrder": "Descending"
-      }
     }
   ],
   "templating": { "list": [] },
