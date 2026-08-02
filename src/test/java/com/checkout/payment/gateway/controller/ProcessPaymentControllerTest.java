@@ -70,7 +70,7 @@ class ProcessPaymentControllerTest {
                     """))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.status").value("Authorized"))
-            .andExpect(jsonPath("$.card_number_last_four").value(8877))
+            .andExpect(jsonPath("$.card_number_last_four").value("8877"))
             .andExpect(jsonPath("$.currency").value("GBP"))
             .andExpect(jsonPath("$.amount").value(100))
             .andExpect(jsonPath("$.id").isNotEmpty());
@@ -137,6 +137,19 @@ class ProcessPaymentControllerTest {
                      "currency":"GBP","amount":100,"cvv":"123"}
                     """))
             .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    void processPayment_floatAmount_returns422_noBankCall() throws Exception {
+        mvc.perform(MockMvcRequestBuilders.post("/api/v1/payments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"card_number":"2222405343248877","expiry_month":4,"expiry_year":2030,
+                     "currency":"GBP","amount":105.4,"cvv":"123"}
+                    """))
+            .andExpect(status().isUnprocessableEntity());
+
+        wireMock.verify(0, postRequestedFor(urlEqualTo("/payments")));
     }
 
     @Test

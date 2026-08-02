@@ -56,7 +56,7 @@ class PaymentGatewayServiceTest {
         assertThat(result.replayed()).isFalse();
         assertThat(result.response().getStatus()).isEqualTo(PaymentStatus.AUTHORIZED);
         assertThat(result.response().getId()).isNotNull();
-        assertThat(result.response().getCardNumberLastFour()).isEqualTo(8877);
+        assertThat(result.response().getCardNumberLastFour()).isEqualTo("8877");
         verify(repository).add(result.response());
     }
 

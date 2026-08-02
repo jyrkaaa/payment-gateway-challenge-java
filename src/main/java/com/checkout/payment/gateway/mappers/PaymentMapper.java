@@ -14,7 +14,7 @@ public class PaymentMapper {
         PostPaymentResponse response = new PostPaymentResponse();
         response.setId(id);
         response.setStatus(status);
-        response.setCardNumberLastFour(Integer.parseInt(request.getCardNumberLastFour()));
+        response.setCardNumberLastFour(request.getCardNumberLastFour());
         response.setExpiryMonth(request.getExpiryMonth());
         response.setExpiryYear(request.getExpiryYear());
         response.setCurrency(request.getCurrency());
