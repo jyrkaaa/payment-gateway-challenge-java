@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -107,7 +108,7 @@ class PaymentGatewayServiceTest {
     void processPayment_sameKeyDifferentRequest_throwsIdempotencyKeyReuseException() {
         PostPaymentRequest request1 = validRequest();
         PostPaymentRequest request2 = validRequest();
-        request2.setAmount(99900);
+        request2.setAmount(BigDecimal.valueOf(99900));
         BankPaymentResponse bankResp = mock(BankPaymentResponse.class);
         when(bankResp.isAuthorized()).thenReturn(true);
         when(bankClient.sendPayment(any())).thenReturn(bankResp);
@@ -152,7 +153,7 @@ class PaymentGatewayServiceTest {
         r.setExpiryMonth(4);
         r.setExpiryYear(2030);
         r.setCurrency("GBP");
-        r.setAmount(10000);
+        r.setAmount(BigDecimal.valueOf(10000));
         r.setCvv("123");
         return r;
     }

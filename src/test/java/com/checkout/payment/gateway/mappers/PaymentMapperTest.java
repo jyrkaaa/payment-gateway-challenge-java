@@ -5,6 +5,7 @@ import com.checkout.payment.gateway.model.PostPaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,7 +19,7 @@ class PaymentMapperTest {
         request.setExpiryMonth(4);
         request.setExpiryYear(2030);
         request.setCurrency("GBP");
-        request.setAmount(10000);
+        request.setAmount(BigDecimal.valueOf(10000));
 
         UUID id = UUID.randomUUID();
         PostPaymentResponse response = PaymentMapper.toPaymentResponse(id, PaymentStatus.AUTHORIZED, request);
@@ -39,7 +40,7 @@ class PaymentMapperTest {
         request.setExpiryMonth(12);
         request.setExpiryYear(2025);
         request.setCurrency("USD");
-        request.setAmount(500);
+        request.setAmount(BigDecimal.valueOf(500));
 
         PostPaymentResponse response = PaymentMapper.toPaymentResponse(UUID.randomUUID(), PaymentStatus.DECLINED, request);
 
@@ -54,7 +55,7 @@ class PaymentMapperTest {
         request.setExpiryMonth(4);
         request.setExpiryYear(2030);
         request.setCurrency("GBP");
-        request.setAmount(100);
+        request.setAmount(BigDecimal.valueOf(100));
 
         PostPaymentResponse response = PaymentMapper.toPaymentResponse(UUID.randomUUID(), PaymentStatus.AUTHORIZED, request);
 

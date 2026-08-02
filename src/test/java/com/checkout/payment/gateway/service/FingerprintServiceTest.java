@@ -3,6 +3,8 @@ package com.checkout.payment.gateway.service;
 import com.checkout.payment.gateway.model.PostPaymentRequest;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class FingerprintServiceTest {
@@ -67,7 +69,7 @@ class FingerprintServiceTest {
         r.setExpiryMonth(month);
         r.setExpiryYear(year);
         r.setCurrency(currency);
-        r.setAmount(amount);
+        r.setAmount(BigDecimal.valueOf(amount));
         r.setCvv(cvv);
         return r;
     }

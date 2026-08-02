@@ -10,10 +10,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-import tools.jackson.databind.exc.InvalidFormatException;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -55,17 +53,8 @@ public class CommonExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleUnreadableMessage(HttpMessageNotReadableException ex) {
-        String message = invalidNumericFieldMessage(ex.getCause()).orElse("Request body is malformed");
         log.warn("Payment rejected - malformed request body: {}", ex.getMessage());
-        return ResponseEntity.unprocessableContent().body(new ErrorResponse(message));
-    }
-
-    private Optional<String> invalidNumericFieldMessage(Throwable cause) {
-        if (cause instanceof InvalidFormatException ife && !ife.getPath().isEmpty()) {
-            String field = ife.getPath().get(0).getPropertyName();
-            return Optional.of(field + " must be a whole number, got '" + ife.getValue() + "'");
-        }
-        return Optional.empty();
+        return ResponseEntity.unprocessableContent().body(new ErrorResponse("Request body is malformed"));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)

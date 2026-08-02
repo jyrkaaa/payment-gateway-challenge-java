@@ -13,7 +13,7 @@ public class BankPaymentMapper {
             .cardNumber(request.getCardNumber())
             .expiryDate(request.getExpiryDate())
             .currency(request.getCurrency())
-            .amount(request.getAmount())
+            .amount(request.getAmount().intValueExact())
             .cvv(request.getCvv())
             .build();
     }

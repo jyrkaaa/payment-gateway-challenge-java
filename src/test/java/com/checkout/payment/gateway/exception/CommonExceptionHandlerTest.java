@@ -14,7 +14,6 @@ import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-import tools.jackson.databind.exc.InvalidFormatException;
 
 import java.util.List;
 import java.util.Set;
@@ -109,20 +108,7 @@ class CommonExceptionHandlerTest {
     }
 
     @Test
-    void httpMessageNotReadableException_floatForIntField_returns422WithFieldDetails() {
-        InvalidFormatException ife = InvalidFormatException.from(null, "not a valid Integer value", "105.4", Integer.class);
-        ife.prependPath(new Object(), "amount");
-        HttpMessageNotReadableException ex =
-            new HttpMessageNotReadableException("JSON parse error", ife, null);
-
-        ResponseEntity<ErrorResponse> response = handler.handleUnreadableMessage(ex);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
-        assertThat(response.getBody().getMessage()).isEqualTo("amount must be a whole number, got '105.4'");
-    }
-
-    @Test
-    void httpMessageNotReadableException_withoutFieldDetails_returns422WithGenericMessage() {
+    void httpMessageNotReadableException_returns422WithGenericMessage() {
         HttpMessageNotReadableException ex =
             new HttpMessageNotReadableException("Malformed JSON", (org.springframework.http.HttpInputMessage) null);
 
