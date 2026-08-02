@@ -4,12 +4,15 @@ import com.checkout.payment.gateway.validation.ValidCurrency;
 import com.checkout.payment.gateway.validation.ValidExpiryDate;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 import lombok.Data;
 import lombok.ToString;
 
@@ -36,8 +39,10 @@ public class PostPaymentRequest implements Serializable {
     @Size(min = 3, max = 3, message = "currency must be 3 characters")
     private String currency;
 
+    @NotNull(message = "amount is required")
     @Positive(message = "amount must be a positive integer")
-    private int amount;
+    @Digits(integer = 9, fraction = 0, message = "amount must be a whole number")
+    private BigDecimal amount;
 
     @NotBlank(message = "cvv is required")
     @Pattern(regexp = "^[0-9]{3,4}$", message = "cvv must be 3-4 numeric digits")

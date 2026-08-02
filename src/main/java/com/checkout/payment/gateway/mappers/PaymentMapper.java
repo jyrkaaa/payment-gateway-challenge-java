@@ -18,7 +18,7 @@ public class PaymentMapper {
         response.setExpiryMonth(request.getExpiryMonth());
         response.setExpiryYear(request.getExpiryYear());
         response.setCurrency(request.getCurrency());
-        response.setAmount(request.getAmount());
+        response.setAmount(request.getAmount().intValueExact());
         return response;
     }
 }

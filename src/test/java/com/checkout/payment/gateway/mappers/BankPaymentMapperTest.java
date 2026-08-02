@@ -4,6 +4,8 @@ import com.checkout.payment.gateway.client.BankPaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentRequest;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class BankPaymentMapperTest {
@@ -15,7 +17,7 @@ class BankPaymentMapperTest {
         request.setExpiryMonth(4);
         request.setExpiryYear(2030);
         request.setCurrency("GBP");
-        request.setAmount(10000);
+        request.setAmount(BigDecimal.valueOf(10000));
         request.setCvv("123");
 
         BankPaymentRequest result = BankPaymentMapper.from(request);
@@ -34,7 +36,7 @@ class BankPaymentMapperTest {
         request.setExpiryMonth(1);
         request.setExpiryYear(2028);
         request.setCurrency("USD");
-        request.setAmount(500);
+        request.setAmount(BigDecimal.valueOf(500));
         request.setCvv("999");
 
         BankPaymentRequest result = BankPaymentMapper.from(request);
