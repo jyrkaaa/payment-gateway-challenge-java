@@ -16,7 +16,7 @@ public class FingerprintService {
         Integer.toString(request.getExpiryMonth()),
         Integer.toString(request.getExpiryYear()),
         nullSafe(request.getCurrency()),
-        request.getAmount().toString(),
+        Integer.toString(request.getAmount()),
         nullSafe(request.getCvv()));
     return sha256(canonical);
   }

@@ -1,7 +1,6 @@
 package com.checkout.payment.gateway.client;
 
 import com.checkout.payment.gateway.exception.BankServiceUnavailableException;
-import java.math.BigDecimal;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
@@ -34,7 +33,7 @@ class RetryingBankClientTest {
             .cardNumber("2222405343248877")
             .expiryDate("04/2030")
             .currency("GBP")
-            .amount(BigDecimal.valueOf(100.00))
+            .amount(10000)
             .cvv("123")
             .build();
     }

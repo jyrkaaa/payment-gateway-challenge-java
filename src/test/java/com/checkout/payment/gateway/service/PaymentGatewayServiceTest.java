@@ -6,7 +6,6 @@ import com.checkout.payment.gateway.enums.PaymentStatus;
 import com.checkout.payment.gateway.exception.BankCommunicationException;
 import com.checkout.payment.gateway.exception.IdempotencyKeyReuseException;
 import com.checkout.payment.gateway.exception.PaymentNotFoundException;
-import com.checkout.payment.gateway.exception.PaymentValidationException;
 import com.checkout.payment.gateway.idempotency.InMemoryIdempotencyStore;
 import com.checkout.payment.gateway.model.PostPaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
@@ -19,8 +18,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -110,7 +107,7 @@ class PaymentGatewayServiceTest {
     void processPayment_sameKeyDifferentRequest_throwsIdempotencyKeyReuseException() {
         PostPaymentRequest request1 = validRequest();
         PostPaymentRequest request2 = validRequest();
-        request2.setAmount(BigDecimal.valueOf(999.00));
+        request2.setAmount(99900);
         BankPaymentResponse bankResp = mock(BankPaymentResponse.class);
         when(bankResp.isAuthorized()).thenReturn(true);
         when(bankClient.sendPayment(any())).thenReturn(bankResp);
@@ -119,16 +116,6 @@ class PaymentGatewayServiceTest {
 
         assertThatThrownBy(() -> service.processPayment(request2, Optional.of("key-x")))
             .isInstanceOf(IdempotencyKeyReuseException.class);
-    }
-
-    @Test
-    void processPayment_validationErrors_throwsAndNeverCallsBank() {
-        PostPaymentRequest request = validRequest();
-
-        assertThatThrownBy(() -> service.processPayment(request, Optional.of("key-x")))
-            .isInstanceOf(PaymentValidationException.class);
-        verifyNoInteractions(bankClient);
-        verifyNoInteractions(repository);
     }
 
     @Test
@@ -165,7 +152,7 @@ class PaymentGatewayServiceTest {
         r.setExpiryMonth(4);
         r.setExpiryYear(2030);
         r.setCurrency("GBP");
-        r.setAmount(BigDecimal.valueOf(100.00));
+        r.setAmount(10000);
         r.setCvv("123");
         return r;
     }

@@ -1,5 +1,5 @@
 package com.checkout.payment.gateway.model;
-
+import java.io.Serializable;
 import com.checkout.payment.gateway.validation.ValidCurrency;
 import com.checkout.payment.gateway.validation.ValidExpiryDate;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -18,7 +18,7 @@ import lombok.ToString;
 @ValidExpiryDate
 @ValidCurrency
 @ToString(exclude = {"cardNumber", "cvv"})
-public class PostPaymentRequest {
+public class PostPaymentRequest implements Serializable {
 
     @NotBlank(message = "card_number is required")
     @Pattern(regexp = "^[0-9]{14,19}$", message = "card_number must be 14-19 numeric digits")
@@ -38,7 +38,7 @@ public class PostPaymentRequest {
     private String currency;
 
     @Positive(message = "amount must be a positive integer")
-    private BigDecimal amount;
+    private int amount;
 
     @NotBlank(message = "cvv is required")
     @Pattern(regexp = "^[0-9]{3,4}$", message = "cvv must be 3-4 numeric digits")

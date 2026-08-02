@@ -16,7 +16,7 @@ public class PaymentRequestValidator implements ConstraintValidator<ValidCurrenc
             return true; // consider null as valid, use @NotNull for null check
         }
         String currency = request.getCurrency();
-        if (currency != null && currency.length() == 3 && !SUPPORTED_CURRENCIES.contains(currency)) {
+        if (currency != null && !SUPPORTED_CURRENCIES.contains(currency)) {
             return false;
         }
         return true;
