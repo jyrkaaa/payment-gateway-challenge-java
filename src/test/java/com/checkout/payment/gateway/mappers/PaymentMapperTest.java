@@ -25,7 +25,7 @@ class PaymentMapperTest {
 
         assertThat(response.getId()).isEqualTo(id);
         assertThat(response.getStatus()).isEqualTo(PaymentStatus.AUTHORIZED);
-        assertThat(response.getCardNumberLastFour()).isEqualTo(8877);
+        assertThat(response.getCardNumberLastFour()).isEqualTo("8877");
         assertThat(response.getExpiryMonth()).isEqualTo(4);
         assertThat(response.getExpiryYear()).isEqualTo(2030);
         assertThat(response.getCurrency()).isEqualTo("GBP");
@@ -44,6 +44,20 @@ class PaymentMapperTest {
         PostPaymentResponse response = PaymentMapper.toPaymentResponse(UUID.randomUUID(), PaymentStatus.DECLINED, request);
 
         assertThat(response.getStatus()).isEqualTo(PaymentStatus.DECLINED);
-        assertThat(response.getCardNumberLastFour()).isEqualTo(8872);
+        assertThat(response.getCardNumberLastFour()).isEqualTo("8872");
+    }
+
+    @Test
+    void toPaymentResponse_lastFourDigitsWithLeadingZero_preservesLeadingZero() {
+        PostPaymentRequest request = new PostPaymentRequest();
+        request.setCardNumber("2222405343240004");
+        request.setExpiryMonth(4);
+        request.setExpiryYear(2030);
+        request.setCurrency("GBP");
+        request.setAmount(100);
+
+        PostPaymentResponse response = PaymentMapper.toPaymentResponse(UUID.randomUUID(), PaymentStatus.AUTHORIZED, request);
+
+        assertThat(response.getCardNumberLastFour()).isEqualTo("0004");
     }
 }

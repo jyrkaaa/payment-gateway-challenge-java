@@ -11,8 +11,8 @@ public class PostPaymentResponse {
     private UUID id;
     @JsonProperty("status")               
     private PaymentStatus status;
-    @JsonProperty("card_number_last_four") 
-    private int cardNumberLastFour;
+    @JsonProperty("card_number_last_four")
+    private String cardNumberLastFour;
     @JsonProperty("expiry_month")          
     private int expiryMonth;
     @JsonProperty("expiry_year")           

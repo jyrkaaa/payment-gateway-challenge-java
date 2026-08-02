@@ -8,11 +8,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import tools.jackson.databind.exc.InvalidFormatException;
 
 import java.util.List;
 import java.util.Set;
@@ -104,6 +106,30 @@ class CommonExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody().getMessage()).contains("GET").contains("unknown/path");
+    }
+
+    @Test
+    void httpMessageNotReadableException_floatForIntField_returns422WithFieldDetails() {
+        InvalidFormatException ife = InvalidFormatException.from(null, "not a valid Integer value", "105.4", Integer.class);
+        ife.prependPath(new Object(), "amount");
+        HttpMessageNotReadableException ex =
+            new HttpMessageNotReadableException("JSON parse error", ife, null);
+
+        ResponseEntity<ErrorResponse> response = handler.handleUnreadableMessage(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+        assertThat(response.getBody().getMessage()).isEqualTo("amount must be a whole number, got '105.4'");
+    }
+
+    @Test
+    void httpMessageNotReadableException_withoutFieldDetails_returns422WithGenericMessage() {
+        HttpMessageNotReadableException ex =
+            new HttpMessageNotReadableException("Malformed JSON", (org.springframework.http.HttpInputMessage) null);
+
+        ResponseEntity<ErrorResponse> response = handler.handleUnreadableMessage(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT);
+        assertThat(response.getBody().getMessage()).isEqualTo("Request body is malformed");
     }
 
     @Test

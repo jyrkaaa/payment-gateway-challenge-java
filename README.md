@@ -29,7 +29,7 @@ docker-compose up -d
 
 ## API
 
-### POST /payments — Process a payment
+### POST /api/v1/payments — Process a payment
 
 ```json
 {
@@ -42,12 +42,16 @@ docker-compose up -d
 }
 ```
 
+Optionally send an `Idempotency-Key` header (1-255 characters, letters/digits/`-`/`_`) to safely retry a request without double-charging. A repeat request with the same key and the same payload returns the original response with an `Idempotent-Replayed: true` header instead of calling the bank again; the same key reused with a *different* payload is rejected with `409 Conflict`.
+
 **Responses:**
 - `201 Created` — payment processed; body contains `status: Authorized` or `status: Declined`
+- `200 OK` — idempotent replay of a previous response (`Idempotent-Replayed: true` header set)
 - `422 Unprocessable Entity` — payment rejected (invalid input; bank was not called)
-- `502 Bad Gateway` — acquiring bank unavailable
+- `409 Conflict` — idempotency key reused with a different payload
+- `502 Bad Gateway` — acquiring bank unavailable (after retries/circuit-breaker are exhausted)
 
-### GET /payments/{id} — Retrieve a payment
+### GET /api/v1/payments/{id} — Retrieve a payment
 
 - `200 OK` — payment found
 - `404 Not Found` — unknown ID
@@ -55,19 +59,30 @@ docker-compose up -d
 ## Architecture
 
 ```
-Controller  →  PaymentGatewayService  →  BankClient (HTTP)
-                        │
+Controller  →  PaymentGatewayService  →  ResilientBankClient (retry + circuit breaker)  →  HttpBankClient
+                        │        │
+                        │        └→ IIdempotencyStore (in-memory)
                  PaymentsRepository (in-memory)
 ```
 
 **Validation layer:**
 - Jakarta Bean Validation (`@Valid`) on the request DTO handles field-level constraints (card number regex, month range, CVV pattern, positive amount)
 - `@ValidExpiryDate` custom constraint checks the compound month+year future rule
-- `PaymentRequestValidator` enforces the currency allowlist (USD, GBP, EUR)
+- `@ValidCurrency` (backed by `PaymentRequestValidator`) enforces the currency allowlist (USD, GBP, EUR) as a class-level constraint
+
+**Resilience layer:**
+- `ResilientBankClient` wraps the HTTP bank call with a Resilience4j `Retry` (exponential backoff, configurable max attempts) and `CircuitBreaker` (opens on a sustained failure rate, fast-fails while open)
+- Configurable via `gateway.acquiring-bank.resilience.*` properties (see `BankProperties`); sensible defaults are baked in if unset
+- Exhausted retries / an open circuit / a bank communication failure all surface as `502 Bad Gateway`
+
+**Idempotency layer:**
+- `InMemoryIdempotencyStore` atomically associates an `Idempotency-Key` with a request fingerprint (SHA-256 of the payment fields) and the resulting response
+- A replayed key with a matching fingerprint short-circuits the bank call and returns the stored response; a mismatched fingerprint is rejected as a key-reuse conflict
 
 **Observability layer:**
 - `RequestCorrelationFilter` attaches a `correlationId` to every request via MDC; echoes it in the `X-Correlation-ID` response header
-- Micrometer counters (`payments.processed`, `payments.rejected`, `payments.bank.errors`) and a `Timer` (`payments.processing.duration`) are scraped by Prometheus
+- `MessageLoggingFilter` logs masked inbound request/response bodies (via `SensitiveDataMasker`, which redacts `cvv` and partially masks `card_number`)
+- Micrometer counters (`payments.processed` tagged by `status`/`currency`) are scraped by Prometheus
 
 ## Design Decisions
 
@@ -81,64 +96,57 @@ Controller  →  PaymentGatewayService  →  BankClient (HTTP)
 
 **Why `GetPaymentResponse` was deleted:** It was an exact copy of `PostPaymentResponse` with no functional difference. Keeping two identical classes creates maintenance burden with no benefit.
 
-**CVV stored as String:** An integer would silently drop leading zeros (e.g. `007` → `7`). String preserves the exact value.
+**`cvv` and `card_number_last_four` stored/returned as `String`:** An integer would silently drop leading zeros (e.g. CVV `007` → `7`, or a card ending `0004` → `4`). Both are kept as strings so the exact digits are preserved end to end.
 
-**PCI logging policy:** Full card numbers and CVVs are never logged at any level. Log entries reference only the last four card digits and the payment UUID.
+**Idempotency via header, not implicit dedup:** Retry-safety is opt-in (`Idempotency-Key` header) rather than automatic, matching how Stripe/Adyen-style payment APIs behave. Fingerprinting the payload (rather than trusting the key alone) means a key reused for a genuinely different payment is caught as a conflict instead of silently returning the wrong stored response.
+
+**Retry + circuit breaker around the bank call:** The bank simulator's `503` is treated as a transient failure worth retrying (bounded, exponential backoff) rather than failing immediately; a circuit breaker prevents hammering a bank that's persistently down. Both are scoped to the bank client only — gateway-side validation failures never reach this layer.
+
+**PCI logging policy:** Full card numbers and CVVs are never logged at any level. `SensitiveDataMasker` redacts `cvv` entirely and partially masks `card_number` (keeps last four) in the request/response bodies captured by `MessageLoggingFilter`.
 
 ## Assumptions
 
 - **Supported currencies:** USD, GBP, EUR (three, as the spec requires)
-- **Storage:** In-memory `HashMap`. Restarting the service clears all payments.
-- **Bank 503:** Mapped to `502 Bad Gateway` with no retry. Production deployments would add circuit-breaking (e.g. Resilience4j) and exponential backoff.
-- **No idempotency key support:** Merchants should not retry `POST /payments` on timeout. A duplicate request creates a duplicate payment. Production would require an `Idempotency-Key` header backed by a durable (Redis/DB) response store with atomic read-then-write semantics.
+- **Storage:** In-memory (`ConcurrentHashMap`) for both payments and idempotency records. Restarting the service clears all state.
+- **Idempotency store is not durable:** It's process-local and unbounded (no TTL/eviction). Fine for this exercise; production would need a durable, TTL'd store (Redis/DB) with atomic read-then-write semantics.
+- **Bank 503 / timeouts:** Retried with exponential backoff and protected by a circuit breaker (see `gateway.acquiring-bank.resilience.*` in `BankProperties`); once retries are exhausted or the circuit is open, the gateway responds `502 Bad Gateway`.
 
 ## Observability
 
 **Metrics (Prometheus → Grafana):**
 
-The `/actuator/prometheus` endpoint exposes:
+The `/actuator/prometheus` endpoint exposes standard Spring Boot/JVM metrics plus:
 
 | Metric | Description |
 |--------|-------------|
-| `payments_processed_total{status="authorized"}` | Total authorized payments |
-| `payments_processed_total{status="declined"}` | Total declined payments |
-| `payments_rejected_total` | Payments rejected at validation |
-| `payments_bank_errors_total` | Bank 503 / communication errors |
-| `payments_processing_duration_seconds` | End-to-end processing time histogram |
+| `payments_processed_total{status,currency}` | Payments processed per bank outcome (`authorized`/`declined`) and currency |
 
-Suggested Grafana queries:
+Suggested Grafana query:
 ```promql
-# Throughput (payments/sec, 5m window)
+# Throughput by status (payments/sec, 5m window)
 rate(payments_processed_total{application="payment-gateway"}[5m])
-
-# P95 latency
-histogram_quantile(0.95, rate(payments_processing_duration_seconds_bucket[5m]))
-
-# Error rate
-rate(payments_bank_errors_total[5m]) + rate(payments_rejected_total[5m])
 ```
 
 **Logging:**
 
-- Dev profile: timestamped pattern with `correlationId` and `paymentId` MDC fields
-- Production profile (`--spring.profiles.active=production`): structured JSON via `logstash-logback-encoder`, consumable by Grafana Loki
+- Dev profile: timestamped console pattern including the `correlationId` MDC field (set per-request by `RequestCorrelationFilter`, echoed back in the `X-Correlation-ID` response header)
+- Production profile (`--spring.profiles.active=production`): structured JSON via `logstash-logback-encoder`, consumable by Grafana Loki/Promtail
+- `MessageLoggingFilter` + `MessageLogger` additionally emit a structured `MESSAGE_LOG` entry for every inbound HTTP call (method, path, status, duration, and masked request/response bodies) — this is the primary audit trail, independent of business-logic logs in the controller/service/bank-client layers
 
 ```
-{"@timestamp":"...","correlationId":"a3f1-...","paymentId":"f9d2-...","level":"INFO","message":"Payment f9d2-... processed with status Authorized for card ending 8877","app":"payment-gateway"}
+{"@timestamp":"...","correlationId":"a3f1-...","level":"INFO","logger_name":"MESSAGE_LOG","event_type":"MSG_LOG","msg_direction":"INBOUND","msg_method":"POST","msg_endpoint":"/api/v1/payments","msg_status":"201","msg_duration_ms":"42","app":"payment-gateway"}
 ```
 
 ## Testing
 
-Three-tier strategy:
-
-| Layer | Class | Scope |
-|-------|-------|-------|
-| Pure unit | `ExpiryDateValidatorTest` | Boundary values for expiry compound rule |
-| Pure unit | `PaymentRequestValidatorTest` | Currency allowlist |
-| Mockito unit | `PaymentGatewayServiceTest` | Service logic with mocked dependencies |
-| WireMock integration | `ProcessPaymentControllerTest` | Full HTTP flow through controller, service, bank client |
-| MockMvc integration | `PaymentGatewayControllerTest` | GET endpoint and 404 path |
+| Layer | Example classes | Scope |
+|-------|------------------|-------|
+| Pure unit | `ExpiryDateValidatorTest`, `PaymentRequestValidatorTest`, `FingerprintServiceTest`, `SensitiveDataMaskerTest` | Validation rules, fingerprinting, log masking |
+| Unit | `InMemoryIdempotencyStoreTest`, `PaymentMapperTest`, `BankPaymentMapperTest`, `CommonExceptionHandlerTest` | Idempotency store semantics (fresh/replay/conflict), DTO mapping, error handling |
+| Mockito unit | `PaymentGatewayServiceTest`, `RetryingBankClientTest`, `HttpBankClientTest` | Service orchestration, retry/circuit-breaker behaviour with mocked HTTP |
+| MockMvc / WireMock integration | `ProcessPaymentControllerTest`, `PaymentGatewayControllerTest` | Full HTTP flow — validation, idempotency headers, bank call, retrieval, 4xx/5xx paths |
+| Filter | `RequestCorrelationFilterTest`, `MessageLoggingFilterTest` | Correlation ID propagation, masked message logging |
 
 ```bash
-./gradlew test
+./gradlew test               # runs the full suite, generates a JaCoCo report under build/reports/jacoco
 ```
