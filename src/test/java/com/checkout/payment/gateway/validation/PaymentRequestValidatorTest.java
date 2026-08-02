@@ -16,6 +16,11 @@ class PaymentRequestValidatorTest {
     }
 
     @Test
+    void nullRequest_valid() {
+        assertThat(validator.isValid(null, null)).isTrue();
+    }
+
+    @Test
     void unsupportedCurrency_returnsError() {
         PostPaymentRequest request = new PostPaymentRequest();
         request.setCurrency("CAD");
