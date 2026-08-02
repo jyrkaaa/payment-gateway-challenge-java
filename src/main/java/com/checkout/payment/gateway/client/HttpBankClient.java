@@ -3,16 +3,16 @@ package com.checkout.payment.gateway.client;
 import com.checkout.payment.gateway.exception.BankCommunicationException;
 import com.checkout.payment.gateway.exception.BankServiceUnavailableException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
+
+import org.springframework.http.HttpStatusCode;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientResponseException;
 
 @Slf4j
 public class HttpBankClient extends AbstractRestClient implements IBankClient {
 
     private static final String ENDPOINT = "/payments";
-    public String TargetServiceName = "acquiring-bank";
+    public String TargetServiceName() { return "acquiring-bank"; }
     
     public HttpBankClient(RestClient restClient) {
         super(restClient);
@@ -28,18 +28,12 @@ public class HttpBankClient extends AbstractRestClient implements IBankClient {
     }
 
     @Override
-    protected RuntimeException mapHttpError(int statusCode, RestClientResponseException ex) {
-        if (statusCode == HttpStatus.SERVICE_UNAVAILABLE.value()) {
-            log.warn("Acquiring bank returned 503 Service Unavailable");
-            return new BankServiceUnavailableException("Acquiring bank returned 503", ex);
-        }
-        log.error("Acquiring bank returned error status {}", statusCode);
-        return new BankServiceUnavailableException("Acquiring bank error: " + statusCode, ex);
+    protected RuntimeException mapHttpError(HttpStatusCode statusCode, String responseBody) {
+        return new BankServiceUnavailableException("Acquiring bank returned " + statusCode);
     }
 
     @Override
     protected RuntimeException mapNetworkError(ResourceAccessException ex) {
-        log.error("Acquiring bank unreachable", ex);
         return new BankServiceUnavailableException("Acquiring bank unreachable", ex);
     }
 }
