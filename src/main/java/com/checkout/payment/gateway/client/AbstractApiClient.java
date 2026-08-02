@@ -4,9 +4,6 @@ import org.springframework.http.HttpStatusCode;
 
 import com.checkout.payment.gateway.logging.MessageLogger;
 
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
 public abstract class AbstractApiClient {
 
     protected abstract String TargetServiceName();
@@ -22,8 +19,7 @@ public abstract class AbstractApiClient {
             return result.value();
         } catch (CallException e) {
             long durationMs = System.currentTimeMillis() - start;
-            int statusCode = e.getStatusCode() != null ? e.getStatusCode().value() : 500;
-            log.warn("StatusCode from e: {}", statusCode, e);
+            Integer statusCode = e.getStatusCode() != null ? e.getStatusCode().value() : null;
             MessageLogger.logOutbound(method, endpoint, TargetServiceName(),
                 statusCode, durationMs, false, requestBody, e.getResponseBody());
             throw e.getCause();
