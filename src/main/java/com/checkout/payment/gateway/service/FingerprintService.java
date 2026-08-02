@@ -2,8 +2,6 @@ package com.checkout.payment.gateway.service;
 import com.checkout.payment.gateway.model.PostPaymentRequest;
 
 import lombok.experimental.UtilityClass;
-
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

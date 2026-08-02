@@ -19,41 +19,55 @@ class PaymentRequestValidatorTest {
     void unsupportedCurrency_returnsError() {
         PostPaymentRequest request = new PostPaymentRequest();
         request.setCurrency("CAD");
-        assertThat(validator.validate(request)).anyMatch(e -> e.contains("currency"));
+        assertThat(validator.isValid(request, null)).isFalse();
     }
 
     @Test
     void nullCurrency_noError() {
         PostPaymentRequest request = new PostPaymentRequest();
         request.setCurrency(null);
-        assertThat(validator.validate(request)).isEmpty();
+        assertThat(validator.isValid(request, null)).isTrue();
     }
 
     @Test
-    void shortCurrency_noError() {
+    void shortCurrency_returnsError() {
         PostPaymentRequest request = new PostPaymentRequest();
         request.setCurrency("US");
-        assertThat(validator.validate(request)).isEmpty();
+        assertThat(validator.isValid(request, null)).isFalse();
     }
 
     @Test
     void usd_noError() {
         PostPaymentRequest request = new PostPaymentRequest();
         request.setCurrency("USD");
-        assertThat(validator.validate(request)).isEmpty();
+        assertThat(validator.isValid(request, null)).isTrue();
     }
 
     @Test
     void gbp_noError() {
         PostPaymentRequest request = new PostPaymentRequest();
         request.setCurrency("GBP");
-        assertThat(validator.validate(request)).isEmpty();
+        assertThat(validator.isValid(request, null)).isTrue();
     }
 
     @Test
     void eur_noError() {
         PostPaymentRequest request = new PostPaymentRequest();
         request.setCurrency("EUR");
-        assertThat(validator.validate(request)).isEmpty();
+        assertThat(validator.isValid(request, null)).isTrue();
+    }
+
+    @Test
+    void jpy_returnsError() {
+        PostPaymentRequest request = new PostPaymentRequest();
+        request.setCurrency("JPY");
+        assertThat(validator.isValid(request, null)).isFalse();
+    }
+
+    @Test
+    void eurWithLower_returnsError() {
+        PostPaymentRequest request = new PostPaymentRequest();
+        request.setCurrency("eur");
+        assertThat(validator.isValid(request, null)).isFalse();
     }
 }

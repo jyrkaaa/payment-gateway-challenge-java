@@ -4,7 +4,6 @@ import com.checkout.payment.gateway.client.BankPaymentResponse;
 import com.checkout.payment.gateway.client.IBankClient;
 import com.checkout.payment.gateway.enums.PaymentStatus;
 import com.checkout.payment.gateway.exception.PaymentNotFoundException;
-import com.checkout.payment.gateway.exception.PaymentValidationException;
 import com.checkout.payment.gateway.idempotency.IIdempotencyStore;
 import com.checkout.payment.gateway.idempotency.IdempotencyResult;
 import com.checkout.payment.gateway.mappers.BankPaymentMapper;
@@ -13,12 +12,10 @@ import com.checkout.payment.gateway.model.PostPaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
 import com.checkout.payment.gateway.model.ProcessedPayment;
 import com.checkout.payment.gateway.repository.PaymentsRepository;
-import com.checkout.payment.gateway.validation.PaymentRequestValidator;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -30,7 +27,6 @@ public class PaymentGatewayService implements IPaymentGatewayService {
     private final PaymentsRepository paymentsRepository;
     private final IBankClient bankClient;
     private final IIdempotencyStore idempotencyService;
-    private final PaymentRequestValidator validator;
     private final MeterRegistry meterRegistry;
 
     @Override
@@ -45,11 +41,6 @@ public class PaymentGatewayService implements IPaymentGatewayService {
         log.debug("Processing payment: last4={} amount={} currency={} idempotencyKey={}",
         request.getCardNumberLastFour(), request.getAmount(), request.getCurrency(),
         idempotencyKey.isPresent() ? "<present>" : "<none>");
-
-        List<String> errors = validator.validate(request);
-        if (!errors.isEmpty()) {
-            throw new PaymentValidationException(errors);
-        }
 
         try {
             ProcessedPayment result = idempotencyKey.isPresent()

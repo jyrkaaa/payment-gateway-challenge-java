@@ -12,7 +12,6 @@ import com.checkout.payment.gateway.model.PostPaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
 import com.checkout.payment.gateway.model.ProcessedPayment;
 import com.checkout.payment.gateway.repository.PaymentsRepository;
-import com.checkout.payment.gateway.validation.PaymentRequestValidator;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,14 +39,12 @@ class PaymentGatewayServiceTest {
 
     @Mock PaymentsRepository          repository;
     @Mock IBankClient                 bankClient;
-    @Mock PaymentRequestValidator     validator;
 
     private PaymentGatewayService service;
 
     @BeforeEach
     void setUp() {
-        lenient().when(validator.validate(any())).thenReturn(List.of());
-        service = new PaymentGatewayService(repository, bankClient, new InMemoryIdempotencyStore(), validator, new SimpleMeterRegistry());
+        service = new PaymentGatewayService(repository, bankClient, new InMemoryIdempotencyStore(), new SimpleMeterRegistry());
     }
 
     @Test
@@ -127,7 +124,6 @@ class PaymentGatewayServiceTest {
     @Test
     void processPayment_validationErrors_throwsAndNeverCallsBank() {
         PostPaymentRequest request = validRequest();
-        when(validator.validate(request)).thenReturn(List.of("currency must be one of: USD, GBP, EUR"));
 
         assertThatThrownBy(() -> service.processPayment(request, Optional.of("key-x")))
             .isInstanceOf(PaymentValidationException.class);

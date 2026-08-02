@@ -4,8 +4,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum PaymentStatus {
   AUTHORIZED("Authorized"),
-  DECLINED("Declined"),
-  REJECTED("Rejected");
+  DECLINED("Declined");
 
   private final String name;
 
