@@ -14,6 +14,7 @@ import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -93,6 +94,18 @@ class RetryingBankClientTest {
         assertThatThrownBy(() -> resilientClient.sendPayment(request))
             .isInstanceOf(BankServiceUnavailableException.class);
         verify(delegate, times(1)).sendPayment(request);
+    }
+
+    @Test
+    void circuitBreakerOpen_fastFailsWithoutCallingDelegate() {
+        CircuitBreaker openCircuitBreaker = CircuitBreaker.ofDefaults("open-test");
+        openCircuitBreaker.transitionToOpenState();
+        resilientClient = new ResilientBankClient(delegate, instantRetry(3), openCircuitBreaker);
+
+        assertThatThrownBy(() -> resilientClient.sendPayment(request))
+            .isInstanceOf(BankServiceUnavailableException.class)
+            .hasMessageContaining("circuit breaker is open");
+        verify(delegate, never()).sendPayment(request);
     }
 
     private static Retry instantRetry(int maxAttempts) {

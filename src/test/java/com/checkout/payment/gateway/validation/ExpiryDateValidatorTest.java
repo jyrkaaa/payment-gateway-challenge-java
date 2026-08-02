@@ -55,4 +55,14 @@ class ExpiryDateValidatorTest {
     void invalidMonth_skipsCheck() {
         assertThat(validator.isValid(request(0, 2030), null)).isTrue();
     }
+
+    @Test
+    void monthAboveTwelve_skipsCheck() {
+        assertThat(validator.isValid(request(13, 2030), null)).isTrue();
+    }
+
+    @Test
+    void yearOutOfRange_catchesDateTimeExceptionAndReturnsFalse() {
+        assertThat(validator.isValid(request(4, Integer.MAX_VALUE), null)).isFalse();
+    }
 }
