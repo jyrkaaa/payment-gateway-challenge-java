@@ -6,6 +6,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -72,6 +75,49 @@ class InMemoryIdempotencyStoreTest {
         assertThat(res2.response()).isSameAs(r2);
         assertThat(res1.replayed()).isFalse();
         assertThat(res2.replayed()).isFalse();
+    }
+
+    @Test
+    void differentKey_isNotBlockedWhileAnotherKeysSupplierIsInFlight() throws InterruptedException {
+        CountDownLatch key1SupplierStarted = new CountDownLatch(1);
+        CountDownLatch releaseKey1Supplier = new CountDownLatch(1);
+
+        CompletableFuture<IdempotencyResult> key1Call = CompletableFuture.supplyAsync(() ->
+            store.computeIfAbsent("key-1", "fp-a", () -> {
+                key1SupplierStarted.countDown();
+                await(releaseKey1Supplier);
+                return response();
+            }));
+
+        assertThat(key1SupplierStarted.await(2, TimeUnit.SECONDS)).isTrue();
+
+        IdempotencyResult key2Result = store.computeIfAbsent("key-2", "fp-b", this::response);
+        assertThat(key2Result.replayed()).isFalse();
+
+        releaseKey1Supplier.countDown();
+        assertThat(key1Call.join().replayed()).isFalse();
+    }
+
+    @Test
+    void supplierThrows_doesNotPoisonKeyAndAllowsRetry() {
+        assertThatThrownBy(() -> store.computeIfAbsent("key-1", "fp-a", () -> {
+            throw new IllegalStateException("bank unavailable");
+        })).isInstanceOf(IllegalStateException.class);
+
+        PostPaymentResponse response = response();
+        IdempotencyResult retryResult = store.computeIfAbsent("key-1", "fp-a", () -> response);
+
+        assertThat(retryResult.replayed()).isFalse();
+        assertThat(retryResult.response()).isSameAs(response);
+    }
+
+    private void await(CountDownLatch latch) {
+        try {
+            latch.await(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
     }
 
     private PostPaymentResponse response() {

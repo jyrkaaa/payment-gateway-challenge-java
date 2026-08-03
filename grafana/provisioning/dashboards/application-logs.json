@@ -16,7 +16,7 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "loki" },
-          "expr": "{job=\"payment-gateway\", event_type=\"APP_LOG\"}",
+          "expr": "{job=\"payment-gateway\", event_type=\"APP_LOG\"} | json | correlationId=~\"$correlationId\" | line_format \"{{.message}}\"",
           "legendFormat": ""
         }
       ],
@@ -57,7 +57,18 @@
       "options": { "tooltip": { "mode": "multi" } }
     }
   ],
-  "templating": { "list": [] },
+  "templating": {
+    "list": [
+      {
+        "name": "correlationId",
+        "label": "Request ID",
+        "type": "textbox",
+        "query": "",
+        "current": { "text": ".*", "value": ".*" },
+        "hide": 0
+      }
+    ]
+  },
   "annotations": { "list": [] },
   "links": [
     { "title": "Message Logs", "url": "/d/msg-logs", "type": "link", "icon": "external link" },

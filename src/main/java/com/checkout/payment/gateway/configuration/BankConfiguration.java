@@ -92,7 +92,7 @@ public class BankConfiguration {
   }
 
   private void logRetry(RetryOnRetryEvent event) {
-    log.warn("Retrying acquiring bank call attempt={} cause={}",
+    log.warn("Retrying acquiring bank call attempt={}",
         event.getNumberOfRetryAttempts() + 1, event.getLastThrowable());
   }
 
