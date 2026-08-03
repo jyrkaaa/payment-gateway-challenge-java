@@ -6,7 +6,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @UtilityClass
@@ -16,6 +18,22 @@ public class SensitiveDataMasker {
 
     private final Set<String> REDACT_KEYS = Set.of("cvv");
     private final Set<String> PARTIAL_MASK_KEYS = Set.of("card_number");
+
+    private final Set<String> REDACT_HEADER_KEYS = Set.of(
+        "authorization", "proxy-authorization", "cookie", "set-cookie", "x-api-key"
+    );
+
+    public String maskHeaders(Map<String, String> headers) {
+        if (headers == null || headers.isEmpty()) return null;
+        Map<String, String> masked = new LinkedHashMap<>();
+        headers.forEach((key, value) ->
+            masked.put(key, REDACT_HEADER_KEYS.contains(key.toLowerCase()) ? "***" : value));
+        try {
+            return MAPPER.writeValueAsString(masked);
+        } catch (Exception e) {
+            return "[unparseable]";
+        }
+    }
 
     public String mask(String json) {
         if (json == null || json.isBlank()) return json;

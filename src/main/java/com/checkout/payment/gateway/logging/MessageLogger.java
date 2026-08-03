@@ -14,12 +14,13 @@ public class MessageLogger {
     private static final List<String> MSG_KEYS = List.of(
         "event_type", "msg_direction", "msg_method", "msg_endpoint",
         "msg_sender", "msg_target", "msg_status", "msg_duration_ms",
-        "msg_request", "msg_response"
+        "msg_request", "msg_response", "msg_headers"
     );
 
     public void logInbound(String method, String endpoint,
                            int statusCode, long durationMs,
-                           String requestBody, String responseBody) {
+                           String requestBody, String responseBody,
+                           java.util.Map<String, String> headers) {
         MDC.put("event_type",      "MSG_LOG");
         MDC.put("msg_direction",   "INBOUND");
         MDC.put("msg_method",      method);
@@ -30,6 +31,8 @@ public class MessageLogger {
         MDC.put("msg_duration_ms", String.valueOf(durationMs));
         if (requestBody != null)  MDC.put("msg_request",  SensitiveDataMasker.mask(requestBody));
         if (responseBody != null) MDC.put("msg_response", SensitiveDataMasker.mask(responseBody));
+        String maskedHeaders = SensitiveDataMasker.maskHeaders(headers);
+        if (maskedHeaders != null) MDC.put("msg_headers", maskedHeaders);
         try {
             log.info("{} {} -> {} ({}ms)", method, endpoint, statusCode, durationMs);
         } finally {

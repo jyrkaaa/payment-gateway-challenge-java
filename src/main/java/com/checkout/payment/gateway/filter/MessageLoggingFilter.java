@@ -13,6 +13,10 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Component
 @Order(2)
@@ -43,8 +47,19 @@ public class MessageLoggingFilter extends OncePerRequestFilter {
                 response.getStatus(),
                 durationMs,
                 reqBody.isEmpty() ? null : reqBody,
-                resBody.isEmpty() ? null : resBody
+                resBody.isEmpty() ? null : resBody,
+                extractHeaders(request)
             );
         }
+    }
+
+    private Map<String, String> extractHeaders(HttpServletRequest request) {
+        Map<String, String> headers = new LinkedHashMap<>();
+        Enumeration<String> headerNames = request.getHeaderNames();
+        if (headerNames == null) return headers;
+        for (String name : Collections.list(headerNames)) {
+            headers.put(name, request.getHeader(name));
+        }
+        return headers;
     }
 }

@@ -67,9 +67,10 @@
               "msg_endpoint":    4,
               "msg_status":      5,
               "correlationId":   6,
-              "msg_duration_ms": 7,
-              "msg_request":     8,
-              "msg_response":    9
+              "msg_headers":     7,
+              "msg_duration_ms": 8,
+              "msg_request":     9,
+              "msg_response":    10
             },
             "renameByName": {
               "msg_sender":      "System",
@@ -78,6 +79,7 @@
               "msg_endpoint":    "Path",
               "msg_status":      "Response",
               "correlationId":   "RequestId",
+              "msg_headers":     "Headers",
               "msg_duration_ms": "Duration (ms)",
               "msg_request":     "Req Body",
               "msg_response":    "Res Body"
@@ -154,6 +156,23 @@
             "matcher": { "id": "byName", "options": "RequestId" },
             "properties": [
               { "id": "custom.width", "value": 290 },
+              { "id": "custom.inspect", "value": true },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "View Application Logs for this Request",
+                    "url": "/d/app-logs?var-correlationId=${__value.raw}&${__url_time_range}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Headers" },
+            "properties": [
+              { "id": "custom.width", "value": 300 },
               { "id": "custom.inspect", "value": true }
             ]
           },

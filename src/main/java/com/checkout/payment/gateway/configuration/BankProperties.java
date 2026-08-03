@@ -10,7 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class BankProperties {
 
   private String url;
-  private Duration connectTimeout = Duration.ofSeconds(2);
+  private Duration connectTimeout = Duration.ofSeconds(10);
   private Duration readTimeout = Duration.ofSeconds(5);
 
   private final Resilience resilience = new Resilience();
@@ -26,7 +26,7 @@ public class BankProperties {
   @Setter
   public static class Retry {
     private int maxAttempts = 3;
-    private Duration initialBackoff = Duration.ofMillis(2000);
+    private Duration initialBackoff = Duration.ofMillis(500);
     private double backoffMultiplier = 2.0;
   }
 
