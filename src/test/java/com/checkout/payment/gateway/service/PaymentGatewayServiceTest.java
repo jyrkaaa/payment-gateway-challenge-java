@@ -7,6 +7,7 @@ import com.checkout.payment.gateway.exception.BankCommunicationException;
 import com.checkout.payment.gateway.exception.IdempotencyKeyReuseException;
 import com.checkout.payment.gateway.exception.PaymentNotFoundException;
 import com.checkout.payment.gateway.idempotency.IIdempotencyStore;
+import com.checkout.payment.gateway.idempotency.IdempotencyResult;
 import com.checkout.payment.gateway.model.PostPaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
 import com.checkout.payment.gateway.model.ProcessedPayment;
@@ -21,10 +22,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -36,9 +40,9 @@ class PaymentGatewayServiceTest {
 
     @Mock 
     IPaymentsRepository repository;
-    @Mock 
+    @Mock
     IBankClient bankClient;
-    @Mock 
+    @Mock
     IIdempotencyStore idempotencyStore;
 
     private PaymentGatewayService service;
@@ -85,6 +89,15 @@ class PaymentGatewayServiceTest {
         when(bankResp.isAuthorized()).thenReturn(true);
         when(bankClient.sendPayment(any())).thenReturn(bankResp);
 
+        AtomicReference<PostPaymentResponse> stored = new AtomicReference<>();
+        when(idempotencyStore.computeIfAbsent(eq("key-abc"), any(), any()))
+            .thenAnswer(invocation -> {
+                Supplier<PostPaymentResponse> supplier = invocation.getArgument(2);
+                stored.set(supplier.get());
+                return new IdempotencyResult(stored.get(), false);
+            })
+            .thenAnswer(invocation -> new IdempotencyResult(stored.get(), true));
+
         ProcessedPayment first = service.processPayment(request, Optional.of("key-abc"));
         ProcessedPayment replayed = service.processPayment(request, Optional.of("key-abc"));
 
@@ -101,6 +114,12 @@ class PaymentGatewayServiceTest {
         when(bankResp.isAuthorized()).thenReturn(true);
         when(bankClient.sendPayment(any())).thenReturn(bankResp);
 
+        when(idempotencyStore.computeIfAbsent(eq("key-new"), any(), any()))
+            .thenAnswer(invocation -> {
+                Supplier<PostPaymentResponse> supplier = invocation.getArgument(2);
+                return new IdempotencyResult(supplier.get(), false);
+            });
+
         ProcessedPayment result = service.processPayment(request, Optional.of("key-new"));
 
         assertThat(result.replayed()).isFalse();
@@ -115,6 +134,13 @@ class PaymentGatewayServiceTest {
         BankPaymentResponse bankResp = mock(BankPaymentResponse.class);
         when(bankResp.isAuthorized()).thenReturn(true);
         when(bankClient.sendPayment(any())).thenReturn(bankResp);
+
+        when(idempotencyStore.computeIfAbsent(eq("key-x"), any(), any()))
+            .thenAnswer(invocation -> {
+                Supplier<PostPaymentResponse> supplier = invocation.getArgument(2);
+                return new IdempotencyResult(supplier.get(), false);
+            })
+            .thenThrow(new IdempotencyKeyReuseException("key-x"));
 
         service.processPayment(request1, Optional.of("key-x"));
 
