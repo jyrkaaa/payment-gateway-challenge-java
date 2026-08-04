@@ -163,3 +163,8 @@ Message logs are emitted from application code and captured on the exception han
 ```bash
 ./gradlew test               # runs the full suite, generates a JaCoCo report under build/reports/jacoco
 ```
+
+Refresh container (loki is kept in file structure)
+```
+docker compose up --build --force-recreate
+```

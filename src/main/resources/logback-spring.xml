@@ -9,8 +9,16 @@
             </encoder>
         </appender>
 
-        <root level="INFO">
+        <!-- Async so request threads (esp. MessageLoggingFilter, which logs full bodies on every
+             request) never block on the appender's synchronized write lock under concurrent load -->
+        <appender name="ASYNC_CONSOLE" class="ch.qos.logback.classic.AsyncAppender">
+            <queueSize>1024</queueSize>
+            <discardingThreshold>0</discardingThreshold>
             <appender-ref ref="CONSOLE"/>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="ASYNC_CONSOLE"/>
         </root>
     </springProfile>
 
@@ -21,8 +29,15 @@
                 <customFields>{"app":"payment-gateway","env":"production"}</customFields>
             </encoder>
         </appender>
-        <root level="INFO">
+
+        <appender name="ASYNC_JSON_CONSOLE" class="ch.qos.logback.classic.AsyncAppender">
+            <queueSize>1024</queueSize>
+            <discardingThreshold>0</discardingThreshold>
             <appender-ref ref="JSON_CONSOLE"/>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="ASYNC_JSON_CONSOLE"/>
         </root>
     </springProfile>
 
