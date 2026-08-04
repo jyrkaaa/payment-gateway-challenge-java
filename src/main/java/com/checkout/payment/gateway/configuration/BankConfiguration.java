@@ -2,6 +2,7 @@ package com.checkout.payment.gateway.configuration;
 import lombok.extern.slf4j.Slf4j;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig.SlidingWindowSynchronizationStrategy;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig.SlidingWindowType;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.circuitbreaker.event.CircuitBreakerOnStateTransitionEvent;
@@ -91,9 +92,10 @@ public class BankConfiguration {
       BankProperties.CircuitBreaker properties) {
     return CircuitBreakerConfig.custom()
         .failureRateThreshold(properties.getFailureRateThreshold())
-        .slidingWindowType(SlidingWindowType.COUNT_BASED)
-        .slidingWindowSize(properties.getSlidingWindowSize())
-        .minimumNumberOfCalls(properties.getMinimumNumberOfCalls())
+        // LOCK_FREE avoids serializing every call (success or failure) on a single
+        // ReentrantLock in the sliding window under concurrent load (SYNCHRONIZED is the default)
+        .slidingWindow(properties.getSlidingWindowSize(), properties.getMinimumNumberOfCalls(),
+            SlidingWindowType.COUNT_BASED, SlidingWindowSynchronizationStrategy.LOCK_FREE)
         .waitDurationInOpenState(properties.getWaitDurationInOpenState())
         .permittedNumberOfCallsInHalfOpenState(properties.getPermittedCallsInHalfOpenState())
         .recordExceptions(BankServiceUnavailableException.class)
