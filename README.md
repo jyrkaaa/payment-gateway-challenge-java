@@ -4,7 +4,7 @@ A Spring Boot payment gateway that processes card payments through an acquiring 
 
 ## Requirements
 
-- JDK 21 (Gradle's toolchain support will provision it automatically if not already installed)
+- JDK 17 (Gradle's toolchain support will provision it automatically if not already installed)
 - Docker (for the bank simulator and optional observability stack)
 
 ## How to Run
