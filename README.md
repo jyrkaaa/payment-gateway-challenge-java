@@ -4,7 +4,7 @@ A Spring Boot payment gateway that processes card payments through an acquiring 
 
 ## Requirements
 
-- JDK 17
+- JDK 21 (Gradle's toolchain support will provision it automatically if not already installed)
 - Docker (for the bank simulator and optional observability stack)
 
 ## How to Run
@@ -121,11 +121,24 @@ The `/actuator/prometheus` endpoint exposes standard Spring Boot/JVM metrics plu
 |--------|-------------|
 | `payments_processed_total{status,currency}` | Payments processed per bank outcome (`authorized`/`declined`) and currency |
 
-Suggested Grafana query:
-```promql
-# Throughput by status (payments/sec, 5m window)
-rate(payments_processed_total{application="payment-gateway"}[5m])
-```
+**Grafana Dashboards:**
+Grafana has three dashboards set up: Message Logs, Application Logs, and Metrics.
+Message logs show requests into our system and calls out to external clients.
+Application logs are what our own code logs directly.
+Metrics come from the metrics endpoint, for monitoring system performance and business benchmarks.
+
+![Grafana Message Logs](<./files/Screenshot 2026-08-04 at 08.55.14.png>)
+
+Sensitive fields in logs, like CVV and card number, are masked partially or entirely, based on configuration.
+![CVV and card number masked in a message log entry](<./files/Screenshot 2026-08-04 at 08.55.45.png>)
+![Card number partially masked in a message log entry](<./files/Screenshot 2026-08-04 at 08.56.00.png>)
+
+Metrics are stored and visualized for resource monitoring and analysis.
+![Grafana metrics dashboard](<./files/Screenshot 2026-08-04 at 08.57.15.png>)
+
+Message logs are emitted from application code and captured on the exception handler. The relevant fields are logged, and the request/correlation ID lets you see all logs associated with a single request.
+![Application logs for a single request](<./files/Screenshot 2026-08-04 at 08.57.32.png>)
+![Message logs correlated by request ID](<./files/Screenshot 2026-08-04 at 08.58.55.png>)
 
 **Logging:**
 
