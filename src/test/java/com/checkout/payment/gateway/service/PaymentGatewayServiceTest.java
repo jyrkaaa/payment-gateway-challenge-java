@@ -6,11 +6,11 @@ import com.checkout.payment.gateway.enums.PaymentStatus;
 import com.checkout.payment.gateway.exception.BankCommunicationException;
 import com.checkout.payment.gateway.exception.IdempotencyKeyReuseException;
 import com.checkout.payment.gateway.exception.PaymentNotFoundException;
-import com.checkout.payment.gateway.idempotency.InMemoryIdempotencyStore;
+import com.checkout.payment.gateway.idempotency.IIdempotencyStore;
 import com.checkout.payment.gateway.model.PostPaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
 import com.checkout.payment.gateway.model.ProcessedPayment;
-import com.checkout.payment.gateway.repository.PaymentsRepository;
+import com.checkout.payment.gateway.repository.IPaymentsRepository;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,19 +30,22 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentGatewayServiceTest {
 
-    @Mock PaymentsRepository          repository;
-    @Mock IBankClient                 bankClient;
+    @Mock 
+    IPaymentsRepository repository;
+    @Mock 
+    IBankClient bankClient;
+    @Mock 
+    IIdempotencyStore idempotencyStore;
 
     private PaymentGatewayService service;
 
     @BeforeEach
     void setUp() {
-        service = new PaymentGatewayService(repository, bankClient, new InMemoryIdempotencyStore(), new SimpleMeterRegistry());
+        service = new PaymentGatewayService(repository, bankClient, idempotencyStore, new SimpleMeterRegistry());
     }
 
     @Test

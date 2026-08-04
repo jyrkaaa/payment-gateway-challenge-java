@@ -11,7 +11,7 @@ import com.checkout.payment.gateway.mappers.PaymentMapper;
 import com.checkout.payment.gateway.model.PostPaymentRequest;
 import com.checkout.payment.gateway.model.PostPaymentResponse;
 import com.checkout.payment.gateway.model.ProcessedPayment;
-import com.checkout.payment.gateway.repository.PaymentsRepository;
+import com.checkout.payment.gateway.repository.IPaymentsRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PaymentGatewayService implements IPaymentGatewayService {
 
-    private final PaymentsRepository paymentsRepository;
+    private final IPaymentsRepository paymentsRepository;
     private final IBankClient bankClient;
     private final IIdempotencyStore idempotencyService;
     private final MeterRegistry meterRegistry;
