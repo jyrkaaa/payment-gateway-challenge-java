@@ -112,7 +112,7 @@ class ProcessPaymentControllerTest {
                 .content("""
                     {"expiry_month":4,"expiry_year":2030,"currency":"GBP","amount":100,"cvv":"123"}
                     """))
-            .andExpect(status().isUnprocessableEntity());
+            .andExpect(status().isUnprocessableContent());
 
         wireMock.verify(0, postRequestedFor(urlEqualTo("/payments")));
     }
@@ -125,7 +125,7 @@ class ProcessPaymentControllerTest {
                     {"card_number":"2222405343248877","expiry_month":4,"expiry_year":2030,
                      "currency":"CAD","amount":100,"cvv":"123"}
                     """))
-            .andExpect(status().isUnprocessableEntity());
+            .andExpect(status().isUnprocessableContent());
     }
 
     @Test
@@ -136,7 +136,7 @@ class ProcessPaymentControllerTest {
                     {"card_number":"2222405343248877","expiry_month":1,"expiry_year":2020,
                      "currency":"GBP","amount":100,"cvv":"123"}
                     """))
-            .andExpect(status().isUnprocessableEntity());
+            .andExpect(status().isUnprocessableContent());
     }
 
     @Test
@@ -147,7 +147,7 @@ class ProcessPaymentControllerTest {
                     {"card_number":"2222405343248877","expiry_month":4,"expiry_year":2030,
                      "currency":"GBP","amount":105.4,"cvv":"123"}
                     """))
-            .andExpect(status().isUnprocessableEntity())
+            .andExpect(status().isUnprocessableContent())
             .andExpect(jsonPath("$.message").value("amount must be a whole number"));
 
         wireMock.verify(0, postRequestedFor(urlEqualTo("/payments")));
@@ -161,7 +161,7 @@ class ProcessPaymentControllerTest {
                     {"card_number":"2222405343248877","expiry_month":4,"expiry_year":2030,
                      "currency":"GBP","amount":100,"cvv":"ab"}
                     """))
-            .andExpect(status().isUnprocessableEntity());
+            .andExpect(status().isUnprocessableContent());
     }
 
     @Test
