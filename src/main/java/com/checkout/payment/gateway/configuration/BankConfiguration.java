@@ -3,8 +3,12 @@ import lombok.extern.slf4j.Slf4j;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig.SlidingWindowType;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.circuitbreaker.event.CircuitBreakerOnStateTransitionEvent;
 import io.github.resilience4j.core.IntervalFunction;
+import io.github.resilience4j.micrometer.tagged.TaggedCircuitBreakerMetrics;
+import io.github.resilience4j.micrometer.tagged.TaggedRetryMetrics;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +25,7 @@ import com.checkout.payment.gateway.exception.BankServiceUnavailableException;
 
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
+import io.github.resilience4j.retry.RetryRegistry;
 import io.github.resilience4j.retry.event.RetryOnErrorEvent;
 import io.github.resilience4j.retry.event.RetryOnRetryEvent;
 
@@ -44,19 +49,23 @@ public class BankConfiguration {
     }
 
   @Bean
-  public Retry acquiringBankRetry(BankProperties properties) {
-    Retry retry = Retry.of(ACQUIRING_BANK, retryConfig(properties.getResilience().getRetry()));
+  public Retry acquiringBankRetry(BankProperties properties, MeterRegistry meterRegistry) {
+    RetryRegistry retryRegistry = RetryRegistry.of(retryConfig(properties.getResilience().getRetry()));
+    Retry retry = retryRegistry.retry(ACQUIRING_BANK);
     retry.getEventPublisher()
         .onRetry(this::logRetry)
         .onError(this::logRetriesExhausted);
+    TaggedRetryMetrics.ofRetryRegistry(retryRegistry).bindTo(meterRegistry);
     return retry;
   }
 
   @Bean
-  public CircuitBreaker acquiringBankCircuitBreaker(BankProperties properties) {
-    CircuitBreaker breaker = CircuitBreaker.of(
-        ACQUIRING_BANK, circuitBreakerConfig(properties.getResilience().getCircuitBreaker()));
+  public CircuitBreaker acquiringBankCircuitBreaker(BankProperties properties, MeterRegistry meterRegistry) {
+    CircuitBreakerRegistry circuitBreakerRegistry =
+        CircuitBreakerRegistry.of(circuitBreakerConfig(properties.getResilience().getCircuitBreaker()));
+    CircuitBreaker breaker = circuitBreakerRegistry.circuitBreaker(ACQUIRING_BANK);
     breaker.getEventPublisher().onStateTransition(this::logStateTransition);
+    TaggedCircuitBreakerMetrics.ofCircuitBreakerRegistry(circuitBreakerRegistry).bindTo(meterRegistry);
     return breaker;
   }
 
