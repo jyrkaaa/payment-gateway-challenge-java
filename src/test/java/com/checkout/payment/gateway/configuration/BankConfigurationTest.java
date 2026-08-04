@@ -5,6 +5,8 @@ import com.checkout.payment.gateway.client.ResilientBankClient;
 import com.checkout.payment.gateway.exception.BankServiceUnavailableException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
 
@@ -17,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class BankConfigurationTest {
 
     private final BankConfiguration configuration = new BankConfiguration();
+    private final MeterRegistry meterRegistry = new SimpleMeterRegistry();
 
     private BankProperties properties() {
         BankProperties properties = new BankProperties();
@@ -43,7 +46,7 @@ class BankConfigurationTest {
 
     @Test
     void acquiringBankRetry_retriesOnceThenSucceeds_logsRetryEvent() {
-        Retry retry = configuration.acquiringBankRetry(properties());
+        Retry retry = configuration.acquiringBankRetry(properties(), meterRegistry);
         AtomicInteger calls = new AtomicInteger();
 
         String result = Retry.decorateSupplier(retry, () -> {
@@ -59,7 +62,7 @@ class BankConfigurationTest {
 
     @Test
     void acquiringBankRetry_exhaustsAttempts_logsRetriesExhaustedEvent() {
-        Retry retry = configuration.acquiringBankRetry(properties());
+        Retry retry = configuration.acquiringBankRetry(properties(), meterRegistry);
 
         assertThatThrownBy(() -> Retry.decorateSupplier(retry, () -> {
             throw new BankServiceUnavailableException("always fails");
@@ -68,7 +71,7 @@ class BankConfigurationTest {
 
     @Test
     void acquiringBankCircuitBreaker_opensAfterFailures_logsStateTransitionEvent() {
-        CircuitBreaker circuitBreaker = configuration.acquiringBankCircuitBreaker(properties());
+        CircuitBreaker circuitBreaker = configuration.acquiringBankCircuitBreaker(properties(), meterRegistry);
 
         for (int i = 0; i < 2; i++) {
             try {
@@ -87,8 +90,8 @@ class BankConfigurationTest {
     void acquiringBankClient_wiresResilientBankClientAroundHttpDelegate() {
         BankProperties properties = properties();
         RestClient restClient = configuration.acquiringBankRestClient(properties);
-        Retry retry = configuration.acquiringBankRetry(properties);
-        CircuitBreaker circuitBreaker = configuration.acquiringBankCircuitBreaker(properties);
+        Retry retry = configuration.acquiringBankRetry(properties, meterRegistry);
+        CircuitBreaker circuitBreaker = configuration.acquiringBankCircuitBreaker(properties, meterRegistry);
 
         IBankClient client = configuration.acquiringBankClient(restClient, retry, circuitBreaker);
 
