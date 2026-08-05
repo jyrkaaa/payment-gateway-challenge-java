@@ -29,7 +29,10 @@ public class HttpBankClient extends AbstractRestClient implements IBankClient {
 
     @Override
     protected RuntimeException mapHttpError(HttpStatusCode statusCode, String responseBody) {
-        return new BankServiceUnavailableException("Acquiring bank returned " + statusCode);
+        if (statusCode.is5xxServerError()) {
+            return new BankServiceUnavailableException("Acquiring bank returned " + statusCode);
+        }
+        return new BankCommunicationException("Acquiring bank returned " + statusCode);
     }
 
     @Override

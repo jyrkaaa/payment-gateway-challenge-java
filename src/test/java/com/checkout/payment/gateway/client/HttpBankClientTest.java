@@ -87,11 +87,12 @@ class HttpBankClientTest {
     }
 
     @Test
-    void sendPayment_bankReturns4xx_throwsBankServiceUnavailableException() {
+    void sendPayment_bankReturns4xx_throwsBankCommunicationExceptionNotServiceUnavailable() {
         wireMock.stubFor(post(urlEqualTo("/payments")).willReturn(badRequest()));
 
         assertThatThrownBy(() -> client.sendPayment(request()))
-            .isInstanceOf(BankServiceUnavailableException.class)
+            .isInstanceOf(BankCommunicationException.class)
+            .isNotInstanceOf(BankServiceUnavailableException.class)
             .hasMessageContaining("400");
     }
 

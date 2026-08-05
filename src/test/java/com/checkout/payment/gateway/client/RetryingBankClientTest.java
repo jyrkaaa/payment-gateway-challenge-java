@@ -1,5 +1,6 @@
 package com.checkout.payment.gateway.client;
 
+import com.checkout.payment.gateway.exception.BankCommunicationException;
 import com.checkout.payment.gateway.exception.BankServiceUnavailableException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
@@ -93,6 +94,16 @@ class RetryingBankClientTest {
 
         assertThatThrownBy(() -> resilientClient.sendPayment(request))
             .isInstanceOf(BankServiceUnavailableException.class);
+        verify(delegate, times(1)).sendPayment(request);
+    }
+
+    @Test
+    void nonRetryableException_notRetried() {
+        when(delegate.sendPayment(request)).thenThrow(new BankCommunicationException("400"));
+
+        assertThatThrownBy(() -> resilientClient.sendPayment(request))
+            .isInstanceOf(BankCommunicationException.class)
+            .isNotInstanceOf(BankServiceUnavailableException.class);
         verify(delegate, times(1)).sendPayment(request);
     }
 
